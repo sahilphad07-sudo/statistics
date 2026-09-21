@@ -94,7 +94,7 @@ function D = dummyvar (g)
       error (strcat ("dummyvar: numeric grouping variable", ...
                      " must be either a vector or a matrix."));
     endif
-    if (any (g(:) <= 0) || any (g(:) != fix (g(:))))
+    if (any (g(! isnan (g)) <= 0) || any (g(! isnan (g)) != fix (g(! isnan (g)))) || any (isinf (g)))
       error (strcat ("dummyvar: numeric grouping variable", ...
                      " must explicitly contain positive integers."));
     endif
@@ -106,7 +106,16 @@ function D = dummyvar (g)
       nc = 1;
     endif
 
-    K = max (g, [], 1);
+    if (isempty (g))
+      if (nr == 0)
+        D = zeros (0, 0);
+        return;
+      else
+        error ("dummyvar: grouping variable must not be empty.");
+      endif
+    endif
+
+    K = max (g(! isnan (g)), [], 1);
     D = zeros (nr, sum (K));
 
     ij = 0;
@@ -118,12 +127,19 @@ function D = dummyvar (g)
       endfor
     endfor
 
+    D(isnan (g), :) = NaN;
+
   ## --- CELLSTRING branch ---
   elseif (iscellstr (g) && isvector (g))
 
     if (! isvector (g) || nc != 1)
       error (strcat ("dummyvar: cellstring grouping", ...
                      " variable must be a column vector."));
+    endif
+
+    if (isempty (g))
+      D = zeros (0, 0);
+      return;
     endif
 
     g = grp2idx (g);
@@ -141,6 +157,10 @@ function D = dummyvar (g)
                      " must have the same number of observations."));
     endif
 
+    if (any (cellfun (@isempty, g)))
+      error ("dummyvar: grouping variables must not be empty.");
+    endif
+
     D = [];
     for i = 1:numel (g)
       g_var = g{i};
@@ -155,8 +175,10 @@ function D = dummyvar (g)
 endfunction
 
 ## Test output
-%!assert_equal (dummyvar ([]), [])
-%!assert_equal (dummyvar (ones (2, 0)), ones (2, 0))
+%!assert_equal (dummyvar ([]), zeros (0, 0))
+%!test
+%! D = dummyvar (cell (0, 1));
+%! assert_equal (size (D), [0, 0]);
 %!test
 %! ## numeric grouping vector
 %! g = [1; 2; 1; 3; 2];
@@ -212,6 +234,11 @@ endfunction
 %! D = dummyvar (g);
 %! D1 = [1, 0, 0; 0, 1, 0; 1, 0, 0; 0, 1, 0; 1, 0, 0; 0, 0, 1; 0, 1, 0; 1, 0, 0];
 %! assert_equal (D, D1);
+%!test
+%! ## numeric grouping vector with NaN                    
+%! g = [1; NaN; 2];                                       
+%! D = dummyvar (g);                                      
+%! assert_equal (D, [1, 0; NaN, NaN; 0, 1]); 
 
 ## Test input validation
 %!error dummyvar ()
@@ -227,3 +254,6 @@ endfunction
 %!error<dummyvar: all grouping variables in cell array must have the same number of observations.> ...
 %! dummyvar ({[2;3;4;5], [1;2;3]})
 %!error<dummyvar: unsupported type of grouping variable.> dummyvar ([true; false])
+%!error dummyvar (ones (2, 0))
+%!error dummyvar ({[], []})  
+%!error dummyvar ([1; Inf; 2])  
