@@ -254,6 +254,6 @@ endfunction
 %!error<dummyvar: all grouping variables in cell array must have the same number of observations.> ...
 %! dummyvar ({[2;3;4;5], [1;2;3]})
 %!error<dummyvar: unsupported type of grouping variable.> dummyvar ([true; false])
-%!error dummyvar (ones (2, 0))
-%!error dummyvar ({[], []})  
-%!error dummyvar ([1; Inf; 2])  
+%!error<dummyvar: grouping variable must not be empty.> dummyvar (ones (2, 0))
+%!error<dummyvar: grouping variables must not be empty.> dummyvar ({[], []})
+%!error<dummyvar: numeric grouping variable must explicitly contain positive integers.> dummyvar ([1; Inf; 2])
