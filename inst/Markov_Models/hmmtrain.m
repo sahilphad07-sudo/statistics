@@ -262,7 +262,8 @@ function [esttr, estout] = hmmtrain (sequence, transguess, outguess, varargin)
   elseif (iscell (sequence) && usesym && ! isempty (sequence) ...
           && iscell (sequence{1}))
     seqs = sequence;
-  elseif (isnumeric (sequence) && rows (sequence) > 1)
+  elseif (isnumeric (sequence) && rows (sequence) > 1 ...
+           && columns (sequence) > 1)
     seqs = num2cell (sequence, 2);
   else
     seqs = {sequence};
@@ -549,6 +550,15 @@ endfunction
 %!                             'pseudoemissions', [1, 2, 1; 3, 1, 2]);
 %! assert_equal (esttr, [5/7, 2/7; 1/29, 28/29], 1e-14);
 %! assert_equal (estout, [1/8, 6/8, 1/8; 9/32, 9/32, 14/32], 1e-14);
+
+%!test
+%! ## A column vector is one sequence, not one sequence per row.
+%! seq = [1; 2; 3; 1; 2; 2; 3; 1; 3; 2; 1; 2];
+%! transguess = [0.8, 0.2; 0.3, 0.7];
+%! outguess = [0.5, 0.3, 0.2; 0.1, 0.7, 0.2];
+%! [esttr, estout] = hmmtrain (seq, transguess, outguess);
+%! assert_equal (all (abs (sum (esttr, 2) - 1) < 1e-10) , true);
+%! assert_equal (all (abs (sum (estout, 2) - 1) < 1e-10) , true);
 
 %!warning <did not converge> ...
 %! transprob = [0.8, 0.2; 0.4, 0.6];
